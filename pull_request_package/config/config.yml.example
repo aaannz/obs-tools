@@ -1,3 +1,12 @@
 :credentials:
   :login: username
   :password: mypassword
+
+:github:
+  :repository: repo_name
+
+:obs:
+  :head_project:
+  :project: project_name
+  :only_packages: package_list_to_checkout
+  :blacklist_packages: packages_not_to_include_in_checkout

@@ -3,12 +3,12 @@ require 'open3'
 
 class GitHubStatusReporter
   include ActiveModel::Model
-  attr_accessor :client, :logger, :package
+  attr_accessor :client, :logger, :project, :repository
   
   def report
     if update?
       logger.info("Update status to state #{state}.")
-      client.create_status('openSUSE/open-build-service', package.commit_sha, state, options)
+      client.create_status(repository, project.commit_sha, state, options)
     else
       logger.info('State did not change, continue...')
     end
@@ -19,7 +19,7 @@ class GitHubStatusReporter
   private
 
   def update?
-    statuses = client.statuses('openSUSE/open-build-service', package.commit_sha)
+    statuses = client.statuses(repository, project.commit_sha)
     build_status = statuses.select { |state| state.context == context }.first
     build_status.nil? || state.to_s != build_status.state || description != build_status.description
   end
@@ -51,12 +51,12 @@ class GitHubStatusReporter
   def options
     {
       context: context,
-      target_url: package.url,
+      target_url: project.url,
       description: description
     }
   end
   
-  def judge_code(code)
+  def judge_code(code, package, repository)
     case code
     when 'succeeded'
       :success
@@ -67,7 +67,7 @@ class GitHubStatusReporter
     when 'building', 'dispatching', 'scheduled', 'finished', 'blocked'
       :pending
     else
-      logger.error("Unmapped status result #{code} in #{package.obs_package_name}")
+      logger.error("Unmapped status result #{code} in #{package}/#{repository}")
       :pending
     end
   end
@@ -75,10 +75,12 @@ class GitHubStatusReporter
   def summary
     return @summary if @summary
     @summary = { failure: 0, success: 0, pending: 0, exclusion: 0 }
-    result = `osc api /build/#{package.obs_project_name}/_result`
+    result = `osc api /build/#{project.obs_project_name}/_result`
     node = Nokogiri::XML(result).root
-    node.xpath('.//status').each do |status|
-      @summary[judge_code(status['code'])] += 1
+    node.xpath('.//result').each do |result|
+      result.xpath('.//status').each do |status|
+        @summary[judge_code(status['code'], status['package'], result['repository'])] += 1
+      end
     end
     @summary
   end
