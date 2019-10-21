@@ -176,6 +176,10 @@ class ObsPullRequestPackage
     content = File.read(path)
     xml = Nokogiri::XML(content)
     node = xml.root.at_xpath(".//param[@name='revision']")
+    if not node
+      node = xml.root.at_xpath(".//service[@name='tar_scm']")
+      node = node.add_child("<param name='revision' />").first
+    end
     node.content = merge_sha
     xml.to_s
   end
