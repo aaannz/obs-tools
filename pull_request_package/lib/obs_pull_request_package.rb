@@ -104,7 +104,7 @@ class ObsPullRequestPackage
     file = File.read('config/new_project_template.xml')
     xml = Nokogiri::XML(file)
     xml.root['name'] = obs_project_name
-    xml.xpath('//title').first.content = "https://github.com/openSUSE/open-build-service/pull/#{pull_request_number}"
+    xml.xpath('//title').first.content = "https://github.com/#{config[:github][:repository]}/pull/#{pull_request_number}"
     xml.xpath('//description').first.content = commit_sha
     xml.to_s
   end
